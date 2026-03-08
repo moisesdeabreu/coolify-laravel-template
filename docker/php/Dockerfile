@@ -23,6 +23,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
+COPY src /var/www
+
+RUN composer install --no-dev --optimize-autoloader
+RUN chmod -R 775 storage bootstrap/cache
+RUN chown -R www-data:www-data /var/www
+
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
 CMD ["php-fpm"]
