@@ -7,8 +7,6 @@ services:
       dockerfile: docker/php/Dockerfile
     restart: unless-stopped
     working_dir: /var/www
-    volumes:
-      - ./src:/var/www
     healthcheck:
       test: [ "CMD", "php-fpm", "-t" ]
       interval: 30s
@@ -28,7 +26,6 @@ services:
     expose:
       - "80"
     volumes:
-      - ./src:/var/www
       - ./docker/nginx:/etc/nginx/conf.d
     healthcheck:
       test: [ "CMD", "nginx", "-t" ]
