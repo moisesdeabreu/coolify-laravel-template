@@ -7,15 +7,31 @@ set -e
 
 echo "Initializing deployment script..."
 
+# Ensure required directories exist
+echo "Ensuring required storage directories exist..."
+mkdir -p /var/www/storage/logs
+mkdir -p /var/www/storage/framework/cache/data
+mkdir -p /var/www/storage/framework/sessions
+mkdir -p /var/www/storage/framework/testing
+mkdir -p /var/www/storage/framework/views
+mkdir -p /var/www/bootstrap/cache
+
 # Fix permissions for directories that might be mapped as host volumes or require writable state
 echo "Fixing permissions for storage and bootstrap/cache..."
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Generate Laravel key if running locally and missing
-if [ -f "/var/www/.env" ] && ! grep -q "APP_KEY=base64" "/var/www/.env"; then
-    echo "App key missing in .env. Attempting to generate..."
-    php /var/www/artisan key:generate || echo "Failed to generate key. Maybe no .env?"
+# Generate Laravel key if it's not provided via Coolify's environment variables
+if [ -z "$APP_KEY" ]; then
+    if [ ! -f "/var/www/.env" ]; then
+        echo "Creating .env file from .env.example..."
+        cp /var/www/.env.example /var/www/.env
+    fi
+
+    if grep -q "APP_KEY=$" "/var/www/.env" || ! grep -q "APP_KEY=" "/var/www/.env"; then
+        echo "App key missing in .env. Attempting to generate..."
+        php /var/www/artisan key:generate --force || echo "Failed to generate key."
+    fi
 fi
 
 # Run migrations
