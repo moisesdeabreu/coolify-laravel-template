@@ -34,6 +34,15 @@ if [ -z "$APP_KEY" ]; then
     fi
 fi
 
+# Create database.sqlite if the connection is sqlite
+if [ "$DB_CONNECTION" = "sqlite" ] || grep -q "^DB_CONNECTION=sqlite" "/var/www/.env" 2>/dev/null; then
+    echo "SQLite connection detected. Ensuring database exists..."
+    touch /var/www/database/database.sqlite
+    chown www-data:www-data /var/www/database/database.sqlite
+    chmod 664 /var/www/database/database.sqlite
+    chown www-data:www-data /var/www/database
+fi
+
 # Run migrations
 echo "Running migrations..."
 php /var/www/artisan migrate --force || echo "Migrations failed. Database might not be ready yet."
