@@ -1,44 +1,37 @@
-#!/bin/bash
+#!/bin/sh
 
-# Navigate to the app directory
-cd /var/www
+set -e
 
-# Install dependencies if composer.json exists
-if [ -f composer.json ]; then
-    echo "Installing dependencies..."
-    composer install --no-interaction --optimize-autoloader --no-dev
-fi
+# This script is executed by the PHP container's entrypoint at runtime.
+# It only includes tasks that need to run in a live environment, such as DB migrations.
 
-# Fix permissions
-echo "Fixing permissions..."
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+echo "Initializing deployment script..."
 
-# Generate Laravel key if missing
-if [ ! -f .env ]; then
-    echo "Creating .env file..."
-    cp .env.example .env
-fi
+# Fix permissions for directories that might be mapped as host volumes or require writable state
+echo "Fixing permissions for storage and bootstrap/cache..."
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-if grep -q "APP_KEY=$" .env || ! grep -q "APP_KEY=" .env; then
-    echo "Generating app key..."
-    php artisan key:generate
+# Generate Laravel key if running locally and missing
+if [ -f "/var/www/.env" ] && ! grep -q "APP_KEY=base64" "/var/www/.env"; then
+    echo "App key missing in .env. Attempting to generate..."
+    php /var/www/artisan key:generate || echo "Failed to generate key. Maybe no .env?"
 fi
 
 # Run migrations
 echo "Running migrations..."
-php artisan migrate --force
+php /var/www/artisan migrate --force || echo "Migrations failed. Database might not be ready yet."
 
 # Create storage link
 echo "Linking storage..."
-php artisan storage:link || true
+php /var/www/artisan storage:link || true
 
-# Cache configuration, routes, and views
+# Cache configuration, routes, and views (essential for production performance)
 echo "Caching configuration..."
-php artisan config:cache
+php /var/www/artisan config:cache
 echo "Caching routes..."
-php artisan route:cache
+php /var/www/artisan route:cache
 echo "Caching views..."
-php artisan view:cache
+php /var/www/artisan view:cache
 
 echo "Deployment steps completed successfully!"

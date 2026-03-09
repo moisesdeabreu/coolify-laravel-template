@@ -7,8 +7,6 @@ services:
       dockerfile: docker/php/Dockerfile
     restart: unless-stopped
     working_dir: /var/www
-    volumes:
-      - ./src:/var/www
     healthcheck:
       test: [ "CMD", "php-fpm", "-t" ]
       interval: 30s
@@ -23,13 +21,12 @@ services:
       - laravel
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
     expose:
       - "80"
-    volumes:
-      - ./docker/nginx:/etc/nginx/conf.d
-      - ./src:/var/www
     healthcheck:
       test: [ "CMD", "nginx", "-t" ]
       interval: 30s
